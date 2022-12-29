@@ -153,7 +153,7 @@ namespace GameControlEditor {
 
         ImGui::TableSetupColumn("Custom Ocarina Controls", PANEL_TABLE_COLUMN_FLAGS | ImGuiTableColumnFlags_WidthStretch);
         TableHelper::InitHeader(false);
-        
+
         ImVec2 cursor = ImGui::GetCursorPos();
         ImGui::SetCursorPos(ImVec2(cursor.x + 5, cursor.y + 5));
         UIWidgets::EnhancementCheckbox("Customize Ocarina Controls", "gCustomOcarinaControls");
@@ -219,7 +219,7 @@ namespace GameControlEditor {
     // Therefore CurrentPort - 1 must always be used inside this function instead of CurrentPort
     void DrawCustomButtons() {
         SohImGui::GetInputEditor()->DrawControllerSelect(CurrentPort - 1);
-        
+
         SohImGui::GetInputEditor()->DrawButton("Modifier 1", BTN_MODIFIER1, CurrentPort - 1, &BtnReading);
         SohImGui::GetInputEditor()->DrawButton("Modifier 2", BTN_MODIFIER2, CurrentPort - 1, &BtnReading);
     }
@@ -264,6 +264,8 @@ namespace GameControlEditor {
                                             "gThirdPersonCameraSensitivity", 0.01f, 5.0f, "", 1.0f, true, true);
         UIWidgets::EnhancementSliderInt("Camera Distance: %d", "##CamDist",
                                         "gFreeCameraDistMax", 100, 900, "", 185, true);
+        UIWidgets::EnhancementSliderFloat("Camera Zoom: %d %%", "##CamZoom",
+                                            "gFreeCameraZoom", 0.1f, 1.0f, "", 0.7f, true, true);
         UIWidgets::EnhancementSliderInt("Camera Transition Speed: %d", "##CamTranSpeed",
                                         "gFreeCameraTransitionSpeed", 0, 900, "", 25, true);
         SohImGui::EndGroupPanel();

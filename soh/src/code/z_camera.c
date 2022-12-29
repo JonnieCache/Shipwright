@@ -1505,7 +1505,12 @@ s32 Camera_Free(Camera* camera) {
         camera->dist = Camera_LERPCeilF(distTarget, camera->dist, speedScaler / (distDiff + speedScaler), 0.0f);
     OLib_Vec3fDiffToVecSphGeo(&spA8, at, eyeNext);
 
-    spA8.r = camera->dist;
+    // distTarget = distTarget * zoomFactor;
+    f32 zoomMin = 1 - CVar_GetFloat("gFreeCameraZoom", 0.7);
+    f32 cameraHeight = (eye->y - camera->playerPosRot.pos.y);
+    f32 zoomFactor = CLAMP((cameraHeight / distTarget), zoomMin, 1.0);
+
+    spA8.r = camera->dist * zoomFactor;
     spA8.yaw = camera->play->camX;
     spA8.pitch = camera->play->camY;
 
