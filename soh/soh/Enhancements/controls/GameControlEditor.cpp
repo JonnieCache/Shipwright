@@ -262,10 +262,12 @@ namespace GameControlEditor {
         DrawHelpIcon("Inverts the Camera Y Axis in:\n-Free camera");
         UIWidgets::EnhancementSliderFloat("Third-Person Sensitivity: %d %%", "##ThirdPersonSensitivity",
                                             "gThirdPersonCameraSensitivity", 0.01f, 5.0f, "", 1.0f, true, true);
-        UIWidgets::EnhancementSliderInt("Camera Distance: %d", "##CamDist",
-                                        "gFreeCameraDistMax", 20, 900, "", 185, true);
-        UIWidgets::EnhancementSliderFloat("Camera Zoom: %d %%", "##CamZoom",
-                                            "gFreeCameraZoom", 0.1f, 1.0f, "", 0.7f, true, true);
+        UIWidgets::EnhancementSliderInt("Camera Top Height: %d", "##CamTopHeight",
+                                        "gFreeCamTopHeight", 0, 500, "", 185, true);
+        UIWidgets::EnhancementSliderInt("Camera Top Control Point Distance: %d", "##CamTopCtrlDist",
+                                            "gFreeCamTopCtrlDist", 0, 500, "", 185, true);
+        UIWidgets::EnhancementSliderInt("Camera Bottom Control Point Distance: %d", "##CamBottomCtrlDist",
+                                            "gFreeCamBottomCtrlDist", 0, 500, "", 185, true);
         UIWidgets::EnhancementSliderInt("Camera Transition Speed: %d", "##CamTranSpeed",
                                         "gFreeCameraTransitionSpeed", 0, 900, "", 25, true);
         SohImGui::EndGroupPanel();
