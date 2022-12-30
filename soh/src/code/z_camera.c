@@ -1429,7 +1429,7 @@ s32 SetCameraManual(Camera* camera) {
         OLib_Vec3fDiffToVecSphGeo(&eyeAdjustment, &camera->at, &camera->eye);
 
         camera->play->rightStickX = eyeAdjustment.yaw;
-        camera->play->rightStickY = eyeAdjustment.pitch;
+        // camera->play->rightStickY = eyeAdjustment.pitch;
     }
 
     if (camera->play->manualCamera) {
