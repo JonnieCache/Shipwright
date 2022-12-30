@@ -263,7 +263,7 @@ namespace GameControlEditor {
         UIWidgets::EnhancementSliderFloat("Third-Person Sensitivity: %d %%", "##ThirdPersonSensitivity",
                                             "gThirdPersonCameraSensitivity", 0.01f, 5.0f, "", 1.0f, true, true);
         UIWidgets::EnhancementSliderInt("Camera Distance: %d", "##CamDist",
-                                        "gFreeCameraDistMax", 100, 900, "", 185, true);
+                                        "gFreeCameraDistMax", 20, 900, "", 185, true);
         UIWidgets::EnhancementSliderFloat("Camera Zoom: %d %%", "##CamZoom",
                                             "gFreeCameraZoom", 0.1f, 1.0f, "", 0.7f, true, true);
         UIWidgets::EnhancementSliderInt("Camera Transition Speed: %d", "##CamTranSpeed",
