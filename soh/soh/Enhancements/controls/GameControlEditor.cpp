@@ -256,6 +256,9 @@ namespace GameControlEditor {
         UIWidgets::PaddedEnhancementCheckbox("Free Camera", "gFreeCamera");
         DrawHelpIcon("Enables free camera control\nNote: You must remap C buttons off of the right stick in the "
                             "controller config menu, and map the camera stick to the right stick.");
+         UIWidgets::EnhancementSliderInt("Camera Distance: %d", "##CamDist",
+                                        "gFreeCameraDistMax", 100, 900, "", 185, true);
+        UIWidgets::PaddedEnhancementCheckbox("Free Camera Zoom", "gFreeCamZoom");
         UIWidgets::PaddedEnhancementCheckbox("Invert Camera X Axis", "gInvertXAxis");
         DrawHelpIcon("Inverts the Camera X Axis in:\n-Free camera");
         UIWidgets::PaddedEnhancementCheckbox("Invert Camera Y Axis", "gInvertYAxis");
@@ -264,6 +267,8 @@ namespace GameControlEditor {
                                             "gThirdPersonCameraSensitivity", 0.01f, 5.0f, "", 1.0f, true, true);
         UIWidgets::EnhancementSliderInt("Camera Top Height: %d", "##CamTopHeight",
                                         "gFreeCamTopHeight", 0, 500, "", 185, true);
+        UIWidgets::EnhancementSliderInt("Camera Top Distance: %d", "##CamTopDist",
+                                        "gFreeCamTopDist", 10, 500, "", 185, true);
         UIWidgets::EnhancementSliderInt("Camera Top Control Point Distance: %d", "##CamTopCtrlDist",
                                             "gFreeCamTopCtrlDist", 0, 500, "", 185, true);
         UIWidgets::EnhancementSliderInt("Camera Bottom Control Point Distance: %d", "##CamBottomCtrlDist",
