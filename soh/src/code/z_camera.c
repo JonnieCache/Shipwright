@@ -1462,9 +1462,9 @@ f32 CubicBezier(f32 t, f32 p0, f32 p1, f32 p2, f32 p3) {
 }
 
 s32 Camera_Free(Camera* camera) {
-    Vec3f* eye = &camera->eye;
-    Vec3f* at = &camera->at;
-    Vec3f* eyeNext = &camera->eyeNext;
+    Vec3f *eye = &camera->eye;
+    Vec3f *at = &camera->at;
+    Vec3f *eyeNext = &camera->eyeNext;
     Vec3f bottomPosition;
     Vec3f bottomControlPoint;
     Vec3f topControlPoint;
@@ -1551,14 +1551,17 @@ s32 Camera_Free(Camera* camera) {
         Camera_Vec3fVecSphGeoAdd(&topPosition, at, &freeCamPosition);
         topPosition.y = camera->player->actor.world.pos.y + CVar_GetS32("gFreeCamTopHeight", para1->distTarget);
 
-        eyeNext->x = CubicBezier(camera->play->rightStickY, bottomPosition.x, bottomControlPoint.x, topControlPoint.x, topPosition.x);
-        eyeNext->y = CubicBezier(camera->play->rightStickY, bottomPosition.y, bottomControlPoint.y, topControlPoint.y, topPosition.y);
-        eyeNext->z = CubicBezier(camera->play->rightStickY, bottomPosition.z, bottomControlPoint.z, topControlPoint.z, topPosition.z);
+        f32 newX = CubicBezier(camera->play->rightStickY, bottomPosition.x, bottomControlPoint.x, topControlPoint.x, topPosition.x);
+        f32 newY = CubicBezier(camera->play->rightStickY, bottomPosition.y, bottomControlPoint.y, topControlPoint.y, topPosition.y);
+        f32 newZ = CubicBezier(camera->play->rightStickY, bottomPosition.z, bottomControlPoint.z, topControlPoint.z, topPosition.z);
+        
+        f32 xDiff = ABS(newX - eyeNext->x);
+        f32 yDiff = ABS(newY - eyeNext->y);
+        f32 zDiff = ABS(newZ - eyeNext->z);
 
-
-        // eyeNext->x = Camera_LERPCeilF(CubicBezier(camera->play->rightStickY, bottomPosition.x, bottomControlPoint.x, topControlPoint.x, topPosition.x), eyeNext->x, speedScaler, 0.0f);
-        // eyeNext->y = Camera_LERPCeilF(CubicBezier(camera->play->rightStickY, bottomPosition.y, bottomControlPoint.y, topControlPoint.y, topPosition.y), eyeNext->y, speedScaler, 0.0f);
-        // eyeNext->z = Camera_LERPCeilF(CubicBezier(camera->play->rightStickY, bottomPosition.z, bottomControlPoint.z, topControlPoint.z, topPosition.z), eyeNext->z, speedScaler, 0.0f);
+        eyeNext->x = Camera_LERPCeilF(newX, eye->x, speedScaler / (xDiff + speedScaler), 0.0f);
+        eyeNext->y = Camera_LERPCeilF(newY, eye->y, speedScaler / (yDiff + speedScaler), 0.0f);
+        eyeNext->z = Camera_LERPCeilF(newZ, eye->z, speedScaler / (zDiff + speedScaler), 0.0f);
 
         // Camera_Vec3fVecSphGeoAdd(&eyeNext, at, &freeCamPosition);
         // eyeNext->y += Camera_LERPCeilF(distTarget, camera->dist, speedScaler / (distDiff + speedScaler), 0.0f);;
