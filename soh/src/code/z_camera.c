@@ -1461,11 +1461,85 @@ f32 CubicBezier(f32 t, f32 p0, f32 p1, f32 p2, f32 p3) {
     return CubicBezierP0(t, p0) + CubicBezierP1(t, p1) + CubicBezierP2(t, p2) + CubicBezierP3(t, p3);
 }
 
-void CubicBezierVec3f(Vec3f* target, f32 t, Vec3f p0, Vec3f p1, Vec3f p2, Vec3f p3) {
-    target->x = CubicBezier(t, p0.x, p1.x, p2.x, p3.x);
-    target->y = CubicBezier(t, p0.y, p1.y, p2.y, p3.y);
-    target->z = CubicBezier(t, p0.z, p1.z, p2.z, p3.z);
+Vec3f* CubicBezierVec3f(Vec3f* target, f32 t, BezierPoints points) {
+    target->x = CubicBezier(t, points.p0.x, points.p1.x, points.p2.x, points.p3.x);
+    target->y = CubicBezier(t, points.p0.y, points.p1.y, points.p2.y, points.p3.y);
+    target->z = CubicBezier(t, points.p0.z, points.p1.z, points.p2.z, points.p3.z);
+
+    return target;
 }
+
+// f32 closestPointVec3f(Vec3f p0, Vec3f p1, Vec3f p2, Vec3f p3, Vec3f* target) {
+//     f32 pathLength = 1;
+//     f32 precision = 0.1;
+//     Vec3f best;
+//     f32 bestLength;
+//     f32 bestDistance = 9999999999;
+//     Vec3f scan;
+//     f32 scanLength;
+//     f32 scanDistance;
+
+//   // linear scan for coarse approximation
+//   for (scanLength = 0; scanLength <= pathLength; scanLength += precision) {
+//     if ((scanDistance = OLib_Vec3fDist(CubicBezierVec3f(&scan, scanLength, p0, p1, p2, p3), target)) < bestDistance) {
+//       best = scan;
+//       bestLength = scanLength;
+//       bestDistance = scanDistance;
+//     }
+//   }
+
+// //   // binary search for precise estimate
+// //   precision /= 2;
+// //   while (precision > 0.5) {
+// //     var before,
+// //         after,
+// //         beforeLength,
+// //         afterLength,
+// //         beforeDistance,
+// //         afterDistance;
+// //     if ((beforeLength = bestLength - precision) >= 0 && (beforeDistance = OLib_Vec3fDist(CubicBezierVec3f(before, beforeLength, p0, p1, p2, p3), target)) < bestDistance) {
+// //       best = before, bestLength = beforeLength, bestDistance = beforeDistance;
+// //     } else if ((afterLength = bestLength + precision) <= pathLength && (afterDistance = OLib_Vec3fDist(CubicBezierVec3f(after, afterLength, p0, p1, p2, p3), target)) < bestDistance) {
+// //       best = after, bestLength = afterLength, bestDistance = afterDistance;
+// //     } else {
+// //       precision /= 2;
+// //     }
+// //   }
+
+// //   best = [best.x, best.y];
+// //   best.distance = Math.sqrt(bestDistance);
+//   return bestLength;
+// }
+
+BezierPoints FreecamCurvePoints(Vec3f* at, Vec3f* eye, f32 yaw, f32 playerY, f32 distTarget) {
+    VecSph cameraCursor;
+    Vec3f eyeCopy = *eye;
+    BezierPoints points;
+
+    eyeCopy.y = at->y;
+    OLib_Vec3fDiffToVecSphGeo(&cameraCursor, at, &eyeCopy);
+    cameraCursor.yaw = yaw;
+
+    cameraCursor.r = 30;
+    Camera_Vec3fVecSphGeoAdd(&points.p0, at, &cameraCursor);
+    points.p0.y = playerY;
+
+    cameraCursor.r = CVar_GetS32("gFreeCamBottomCtrlDist", distTarget);
+    Camera_Vec3fVecSphGeoAdd(&points.p1, at, &cameraCursor);
+    points.p1.y = playerY;
+
+    cameraCursor.r = CVar_GetS32("gFreeCamTopCtrlDist", distTarget);
+    Camera_Vec3fVecSphGeoAdd(&points.p2, at, &cameraCursor);
+    points.p2.y = playerY + CVar_GetS32("gFreeCamTopHeight", distTarget);
+
+    cameraCursor.r = CVar_GetS32("gFreeCamTopDist", distTarget);
+    Camera_Vec3fVecSphGeoAdd(&points.p3, at, &cameraCursor);
+    points.p3.y = playerY + CVar_GetS32("gFreeCamTopHeight", distTarget);
+
+    return points;
+}
+
+
 s32 Camera_Free(Camera* camera) {
     Vec3f *eye = &camera->eye;
     Vec3f *at = &camera->at;
@@ -1523,46 +1597,12 @@ s32 Camera_Free(Camera* camera) {
 
     camera->play->rightStickY = CLAMP(camera->play->rightStickY, 0, 1.0f);
 
-    // f32 distTarget = camera->play->rightStickY + 20;
-    // f32 distTarget = (camera->play->rightStickY * (CVar_GetS32("gFreeCameraDistMax", para1->distTarget) - 20)) + 20;
-    // f32 distTarget = camera->play->rightStickY * CVar_GetS32("gFreeCameraDistMax", para1->distTarget);
-
-    // // f32 distTarget = newRightStickY;
     f32 speedScaler = CVar_GetS32("gFreeCameraTransitionSpeed", 25);
-    // f32 distDiff = ABS(distTarget - camera->dist);
-    // if (distDiff > 0)
-    //     camera->dist = Camera_LERPCeilF(distTarget, camera->dist, speedScaler / (distDiff + speedScaler), 0.0f);
-    eyeNext->y = at->y;
-    OLib_Vec3fDiffToVecSphGeo(&freeCamPosition, at, eyeNext);
-    freeCamPosition.yaw = camera->play->rightStickX;
 
-    // nextAngle.yaw = BINANG_ROT180(camera->playerPosRot.rot.y);
-
-    freeCamPosition.r = 30;
-    Camera_Vec3fVecSphGeoAdd(&bottomPosition, at, &freeCamPosition);
-    bottomPosition.y = camera->player->actor.world.pos.y;
-
-    freeCamPosition.r = CVar_GetS32("gFreeCamBottomCtrlDist", para1->distTarget);
-    Camera_Vec3fVecSphGeoAdd(&bottomControlPoint, at, &freeCamPosition);
-    bottomControlPoint.y = camera->player->actor.world.pos.y;
-
-    freeCamPosition.r = CVar_GetS32("gFreeCamTopCtrlDist", para1->distTarget);
-    Camera_Vec3fVecSphGeoAdd(&topControlPoint, at, &freeCamPosition);
-    topControlPoint.y = camera->player->actor.world.pos.y + CVar_GetS32("gFreeCamTopHeight", para1->distTarget);
-
-    freeCamPosition.r = CVar_GetS32("gFreeCamTopDist", para1->distTarget);
-    Camera_Vec3fVecSphGeoAdd(&topPosition, at, &freeCamPosition);
-    topPosition.y = camera->player->actor.world.pos.y + CVar_GetS32("gFreeCamTopHeight", para1->distTarget);
-
-
-
-
-
-
-
+    BezierPoints points = FreecamCurvePoints(at, eye, camera->play->rightStickX, camera->player->actor.world.pos.y, para1->distTarget);
 
     Vec3f targetPos;
-    CubicBezierVec3f(&targetPos, camera->play->rightStickY, bottomPosition, bottomControlPoint, topControlPoint, topPosition);
+    CubicBezierVec3f(&targetPos, camera->play->rightStickY, points);
     
     f32 yDiff = ABS(targetPos.y - eye->y);
     f32 xzDiff = ABS(OLib_Vec3fDistXZ(&targetPos, eye));
@@ -1587,11 +1627,12 @@ s32 Camera_Free(Camera* camera) {
         // colChk.pos = newPos;
         Camera_BGCheckInfo(camera, at, &colChk);
         *eye = colChk.pos;
+        *eyeNext = colChk.pos;
     }
 
     camera->fov = Camera_LERPCeilF(65.0f, camera->fov, camera->fovUpdateRate, 1.0f);
     camera->roll = Camera_LERPCeilS(0, camera->roll, 0.5, 0xA);
-    // camera->dist = Math_Vec3f_DistXYZ(eye, at);
+    camera->dist = Math_Vec3f_DistXYZ(eye, at);
 
     return 1;
 }

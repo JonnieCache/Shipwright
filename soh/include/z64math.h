@@ -20,6 +20,10 @@ typedef struct {
 } Vec3f; // size = 0x0C
 
 typedef struct {
+    Vec3f p0, p1, p2, p3;
+} BezierPoints;
+
+typedef struct {
     u16 x, y, z;
 } Vec3us; // size = 0x06
 
