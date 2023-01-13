@@ -1511,6 +1511,12 @@ f32 BezierClosestPoint(BezierPoints points, Vec3f* target) {
     Vec3f scan;
     f32 scanLength;
     f32 scanDistance;
+    Vec3f before;
+    Vec3f after;
+    f32 beforeLength;
+    f32 afterLength;
+    f32 beforeDistance;
+    f32 afterDistance;
 
   // linear scan for coarse approximation
   for (scanLength = 0; scanLength <= pathLength; scanLength += precision) {
@@ -1521,26 +1527,19 @@ f32 BezierClosestPoint(BezierPoints points, Vec3f* target) {
     }
   }
 
-//   // binary search for precise estimate
-//   precision /= 2;
-//   while (precision > 0.5) {
-//     var before,
-//         after,
-//         beforeLength,
-//         afterLength,
-//         beforeDistance,
-//         afterDistance;
-//     if ((beforeLength = bestLength - precision) >= 0 && (beforeDistance = OLib_Vec3fDist(BezierVec3f(before, beforeLength, p0, p1, p2, p3), target)) < bestDistance) {
-//       best = before, bestLength = beforeLength, bestDistance = beforeDistance;
-//     } else if ((afterLength = bestLength + precision) <= pathLength && (afterDistance = OLib_Vec3fDist(BezierVec3f(after, afterLength, p0, p1, p2, p3), target)) < bestDistance) {
-//       best = after, bestLength = afterLength, bestDistance = afterDistance;
-//     } else {
-//       precision /= 2;
-//     }
-//   }
+  // binary search for precise estimate
+  precision /= 2;
+  while (precision > 0.00625) {
 
-//   best = [best.x, best.y];
-//   best.distance = Math.sqrt(bestDistance);
+    if ((beforeLength = bestLength - precision) >= 0 && (beforeDistance = OLib_Vec3fDist(BezierVec3f(&before, beforeLength, points), target)) < bestDistance) {
+      best = before, bestLength = beforeLength, bestDistance = beforeDistance;
+    } else if ((afterLength = bestLength + precision) <= pathLength && (afterDistance = OLib_Vec3fDist(BezierVec3f(&after, afterLength, points), target)) < bestDistance) {
+      best = after, bestLength = afterLength, bestDistance = afterDistance;
+    } else {
+      precision /= 2;
+    }
+  }
+
   return bestLength;
 }
 
@@ -1613,18 +1612,6 @@ s32 Camera_Free(Camera* camera) {
     f32 xzDiff = ABS(OLib_Vec3fDistXZ(&targetPos, eye));
 
     Camera_LERPCeilVec3f(&targetPos, eye, speedScaler / (yDiff + speedScaler), speedScaler / (xzDiff + speedScaler), 0.0f);
-
-    // f32 newX = CubicBezier(camera->play->rightStickY, bottomPosition.x, bottomControlPoint.x, topControlPoint.x, topPosition.x);
-    // f32 newY = CubicBezier(camera->play->rightStickY, bottomPosition.y, bottomControlPoint.y, topControlPoint.y, topPosition.y);
-    // f32 newZ = CubicBezier(camera->play->rightStickY, bottomPosition.z, bottomControlPoint.z, topControlPoint.z, topPosition.z);
-    
-    // f32 xDiff = ABS(newX - eyeNext->x);
-    // f32 yDiff = ABS(newY - eyeNext->y);
-    // f32 zDiff = ABS(newZ - eyeNext->z);
-
-    // eyeNext->x = Camera_LERPCeilF(newX, eye->x, speedScaler / (xDiff + speedScaler), 0.0f);
-    // eyeNext->y = Camera_LERPCeilF(newY, eye->y, speedScaler / (yDiff + speedScaler), 0.0f);
-    // eyeNext->z = Camera_LERPCeilF(newZ, eye->z, speedScaler / (zDiff + speedScaler), 0.0f);
 
     if (camera->status == CAM_STAT_ACTIVE) {
         CamColChk colChk;
