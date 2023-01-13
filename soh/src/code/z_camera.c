@@ -1458,11 +1458,8 @@ s32 SetCameraManual(Camera* camera) {
 
         BezierPoints points = FreecamCurvePoints(&camera->at, &camera->eye, eyeAdjustment.yaw, camera->player->actor.world.pos.y, 100);
 
-        camera->play->rightStickX = eyeAdjustment.yaw;
-        f32 closest = BezierClosestPoint(points, &camera->eye);
-        camera->play->rightStickY = closest;
-        // camera->play->rightStickY = eyeAdjustment.pitch;
-        // camera->play->manualCamera = true;
+        camera->play->camX = eyeAdjustment.yaw;
+        camera->play->camY = BezierClosestPoint(points, &camera->eye);
     }
 
     if (camera->play->manualCamera) {
@@ -1504,8 +1501,7 @@ Vec3f* BezierVec3f(Vec3f* target, f32 t, BezierPoints points) {
 
 f32 BezierClosestPoint(BezierPoints points, Vec3f* target) {
     f32 pathLength = 1;
-    f32 precision = 0.1;
-    Vec3f best;
+    f32 precision = 0.3;
     f32 bestLength;
     f32 bestDistance = 9999999999;
     Vec3f scan;
@@ -1521,20 +1517,21 @@ f32 BezierClosestPoint(BezierPoints points, Vec3f* target) {
   // linear scan for coarse approximation
   for (scanLength = 0; scanLength <= pathLength; scanLength += precision) {
     if ((scanDistance = OLib_Vec3fDist(BezierVec3f(&scan, scanLength, points), target)) < bestDistance) {
-      best = scan;
       bestLength = scanLength;
       bestDistance = scanDistance;
     }
   }
 
+
   // binary search for precise estimate
   precision /= 2;
-  while (precision > 0.00625) {
-
+  while (precision > 0.000625) {
     if ((beforeLength = bestLength - precision) >= 0 && (beforeDistance = OLib_Vec3fDist(BezierVec3f(&before, beforeLength, points), target)) < bestDistance) {
-      best = before, bestLength = beforeLength, bestDistance = beforeDistance;
+      bestLength = beforeLength;
+      bestDistance = beforeDistance;
     } else if ((afterLength = bestLength + precision) <= pathLength && (afterDistance = OLib_Vec3fDist(BezierVec3f(&after, afterLength, points), target)) < bestDistance) {
-      best = after, bestLength = afterLength, bestDistance = afterDistance;
+      bestLength = afterLength;
+      bestDistance = afterDistance;
     } else {
       precision /= 2;
     }
@@ -1596,27 +1593,26 @@ s32 Camera_Free(Camera* camera) {
     f32 newRightStickX = -D_8015BD7C->state.input[0].cur.right_stick_x * 10.0f * (CVar_GetFloat("gThirdPersonCameraSensitivity", 1.0f));
     f32 newRightStickY = D_8015BD7C->state.input[0].cur.right_stick_y * 0.0003 * (CVar_GetFloat("gThirdPersonCameraSensitivity", 1.0f));
 
-    camera->play->rightStickX += newRightStickX * (CVar_GetS32("gInvertXAxis", 0) ? -1 : 1);
-    camera->play->rightStickY += newRightStickY * (CVar_GetS32("gInvertYAxis", 1) ? 1 : -1);
+    camera->play->camX += newRightStickX * (CVar_GetS32("gInvertXAxis", 0) ? -1 : 1);
+    camera->play->camY += newRightStickY * (CVar_GetS32("gInvertYAxis", 1) ? 1 : -1);
 
-    camera->play->rightStickY = CLAMP(camera->play->rightStickY, 0, 1.0f);
+    camera->play->camY = CLAMP(camera->play->camY, 0, 1.0f);
 
-    f32 speedScaler = CVar_GetS32("gFreeCameraTransitionSpeed", 25);
 
-    BezierPoints points = FreecamCurvePoints(at, eye, camera->play->rightStickX, camera->player->actor.world.pos.y, para1->distTarget);
+    BezierPoints points = FreecamCurvePoints(at, eye, camera->play->camX, camera->player->actor.world.pos.y, para1->distTarget);
 
     Vec3f targetPos;
-    BezierVec3f(&targetPos, camera->play->rightStickY, points);
+    BezierVec3f(&targetPos, camera->play->camY, points);
     
     f32 yDiff = ABS(targetPos.y - eye->y);
     f32 xzDiff = ABS(OLib_Vec3fDistXZ(&targetPos, eye));
+    f32 speedScaler = CVar_GetS32("gFreeCameraTransitionSpeed", 25);
 
     Camera_LERPCeilVec3f(&targetPos, eye, speedScaler / (yDiff + speedScaler), speedScaler / (xzDiff + speedScaler), 0.0f);
 
     if (camera->status == CAM_STAT_ACTIVE) {
         CamColChk colChk;
         colChk.pos = *eye;
-        // colChk.pos = newPos;
         Camera_BGCheckInfo(camera, at, &colChk);
         *eye = colChk.pos;
         *eyeNext = colChk.pos;
