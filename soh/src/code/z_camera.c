@@ -1475,7 +1475,6 @@ s32 Camera_Free(Camera* camera) {
     Vec3f topControlPoint;
     Vec3f topPosition;
     VecSph freeCamPosition;
-    CamColChk sp6C;
     Parallel1* para1 = (Parallel1*)camera->paramData;
     f32 playerHeight;
 
@@ -1551,25 +1550,43 @@ s32 Camera_Free(Camera* camera) {
     Camera_Vec3fVecSphGeoAdd(&topControlPoint, at, &freeCamPosition);
     topControlPoint.y = camera->player->actor.world.pos.y + CVar_GetS32("gFreeCamTopHeight", para1->distTarget);
 
-    freeCamPosition.r = CVar_GetS32("gFreeCamTopDist", para1->distTarget);;
+    freeCamPosition.r = CVar_GetS32("gFreeCamTopDist", para1->distTarget);
     Camera_Vec3fVecSphGeoAdd(&topPosition, at, &freeCamPosition);
     topPosition.y = camera->player->actor.world.pos.y + CVar_GetS32("gFreeCamTopHeight", para1->distTarget);
 
-    Vec3f newPos;
-    CubicBezierVec3f(&newPos, camera->play->rightStickY, bottomPosition, bottomControlPoint, topControlPoint, topPosition);
+
+
+
+
+
+
+
+    Vec3f targetPos;
+    CubicBezierVec3f(&targetPos, camera->play->rightStickY, bottomPosition, bottomControlPoint, topControlPoint, topPosition);
     
-    f32 yDiff = ABS(newPos.y - eye->y);
-    f32 xzDiff = ABS(OLib_Vec3fDistXZ(&newPos, eye));
+    f32 yDiff = ABS(targetPos.y - eye->y);
+    f32 xzDiff = ABS(OLib_Vec3fDistXZ(&targetPos, eye));
 
-    Camera_LERPCeilVec3f(&newPos, eyeNext, speedScaler / (yDiff + speedScaler), speedScaler / (xzDiff + speedScaler), 0.0f);
+    Camera_LERPCeilVec3f(&targetPos, eye, speedScaler / (yDiff + speedScaler), speedScaler / (xzDiff + speedScaler), 0.0f);
 
-    // Camera_Vec3fVecSphGeoAdd(&eyeNext, at, &freeCamPosition);
-    // eyeNext->y += Camera_LERPCeilF(distTarget, camera->dist, speedScaler / (distDiff + speedScaler), 0.0f);;
+    // f32 newX = CubicBezier(camera->play->rightStickY, bottomPosition.x, bottomControlPoint.x, topControlPoint.x, topPosition.x);
+    // f32 newY = CubicBezier(camera->play->rightStickY, bottomPosition.y, bottomControlPoint.y, topControlPoint.y, topPosition.y);
+    // f32 newZ = CubicBezier(camera->play->rightStickY, bottomPosition.z, bottomControlPoint.z, topControlPoint.z, topPosition.z);
+    
+    // f32 xDiff = ABS(newX - eyeNext->x);
+    // f32 yDiff = ABS(newY - eyeNext->y);
+    // f32 zDiff = ABS(newZ - eyeNext->z);
+
+    // eyeNext->x = Camera_LERPCeilF(newX, eye->x, speedScaler / (xDiff + speedScaler), 0.0f);
+    // eyeNext->y = Camera_LERPCeilF(newY, eye->y, speedScaler / (yDiff + speedScaler), 0.0f);
+    // eyeNext->z = Camera_LERPCeilF(newZ, eye->z, speedScaler / (zDiff + speedScaler), 0.0f);
 
     if (camera->status == CAM_STAT_ACTIVE) {
-        sp6C.pos = newPos;
-        Camera_BGCheckInfo(camera, at, &sp6C);
-        *eye = sp6C.pos;
+        CamColChk colChk;
+        colChk.pos = *eye;
+        // colChk.pos = newPos;
+        Camera_BGCheckInfo(camera, at, &colChk);
+        *eye = colChk.pos;
     }
 
     camera->fov = Camera_LERPCeilF(65.0f, camera->fov, camera->fovUpdateRate, 1.0f);
