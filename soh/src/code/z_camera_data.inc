@@ -2401,3 +2401,4 @@ s16 D_8011DAFC[] = {
 PlayState* D_8015BD7C;
 DbCamera D_8015BD80;
 CollisionPoly* playerFloorPoly;
+f32 BezierClosestPoint(BezierPoints points, Vec3f* target);
