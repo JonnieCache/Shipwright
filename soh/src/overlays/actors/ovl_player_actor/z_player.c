@@ -2117,6 +2117,7 @@ void func_80833DF8(Player* this, PlayState* play) {
     }
 }
 
+// drawing item
 void func_808340DC(Player* this, PlayState* play) {
     LinkAnimationHeader* anim;
     f32 frameCount;
@@ -2422,7 +2423,7 @@ s32 func_80834C74(Player* this, PlayState* play) {
 
     return 1;
 }
-
+// YO??????
 s32 func_80834D2C(Player* this, PlayState* play) {
     LinkAnimationHeader* anim;
 
@@ -2436,6 +2437,7 @@ s32 func_80834D2C(Player* this, PlayState* play) {
         } else {
             anim = &gPlayerAnim_link_hook_shot_ready;
         }
+        // this is it!
         LinkAnimation_PlayOnce(play, &this->skelAnime2, anim);
     } else {
         func_80833638(this, func_80835884);
@@ -2560,6 +2562,7 @@ s32 func_808350A4(PlayState* play, Player* this) {
 
 static u16 D_808543DC[] = { NA_SE_IT_BOW_FLICK, NA_SE_IT_SLING_FLICK };
 
+// aiming?
 s32 func_808351D4(Player* this, PlayState* play) {
     s32 sp2C;
 
@@ -2577,6 +2580,7 @@ s32 func_808351D4(Player* this, PlayState* play) {
         LinkAnimation_PlayOnce(play, &this->skelAnime2, D_808543CC[sp2C]);
         this->unk_836 = -1;
     } else if (LinkAnimation_Update(play, &this->skelAnime2)) {
+        // breathing animation
         LinkAnimation_PlayLoop(play, &this->skelAnime2, D_808543D4[sp2C]);
         this->unk_836 = 1;
     } else if (this->unk_836 == 1) {
@@ -9725,7 +9729,7 @@ void Player_Init(Actor* thisx, PlayState* play2) {
     MREG(64) = 0;
 }
 
-void func_808471F4(s16* pValue) {
+void SmoothScaleToZero(s16* pValue) {
     s16 step;
 
     step = (ABS(*pValue) * 100.0f) / 1000.0f;
@@ -9734,49 +9738,50 @@ void func_808471F4(s16* pValue) {
     Math_ScaledStepToS(pValue, 0, step);
 }
 
-void func_80847298(Player* this) {
+void func_80847298(Player* this, PlayState* play) {
     s16 sp26;
 
     if (!(this->unk_6AE & 2)) {
         sp26 = this->actor.focus.rot.y - this->actor.shape.rot.y;
-        func_808471F4(&sp26);
+        SmoothScaleToZero(&sp26);
         this->actor.focus.rot.y = this->actor.shape.rot.y + sp26;
     }
 
-    if (!(this->unk_6AE & 1)) {
-        func_808471F4(&this->actor.focus.rot.x);
+    if (!(this->unk_6AE & 1) && !play->manualCamera) {
+        // RESET PITCH TO ZERO!
+        SmoothScaleToZero(&this->actor.focus.rot.x);
     }
 
     if (!(this->unk_6AE & 8)) {
-        func_808471F4(&this->unk_6B6);
+        SmoothScaleToZero(&this->unk_6B6);
     }
 
     if (!(this->unk_6AE & 0x40)) {
-        func_808471F4(&this->unk_6BC);
+        SmoothScaleToZero(&this->unk_6BC);
     }
 
     if (!(this->unk_6AE & 4)) {
-        func_808471F4(&this->actor.focus.rot.z);
+        SmoothScaleToZero(&this->actor.focus.rot.z);
     }
 
     if (!(this->unk_6AE & 0x10)) {
-        func_808471F4(&this->unk_6B8);
+        SmoothScaleToZero(&this->unk_6B8);
     }
 
     if (!(this->unk_6AE & 0x20)) {
-        func_808471F4(&this->unk_6BA);
+        SmoothScaleToZero(&this->unk_6BA);
     }
 
     if (!(this->unk_6AE & 0x80)) {
         if (this->unk_6B0 != 0) {
-            func_808471F4(&this->unk_6B0);
+            SmoothScaleToZero(&this->unk_6B0);
         } else {
-            func_808471F4(&this->unk_6BE);
+            SmoothScaleToZero(&this->unk_6BE);
         }
     }
 
     if (!(this->unk_6AE & 0x100)) {
-        func_808471F4(&this->unk_6C0);
+        SmoothScaleToZero(&this->unk_6C0);
     }
 
     this->unk_6AE = 0;
@@ -10815,7 +10820,7 @@ void Player_UpdateCommon(Player* this, PlayState* play, Input* input) {
                                PLAYER_STATE2_DO_ACTION_ENTER | PLAYER_STATE2_22 | PLAYER_STATE2_26);
         this->stateFlags3 &= ~PLAYER_STATE3_4;
 
-        func_80847298(this);
+        func_80847298(this, play);
         func_8083315C(play, this);
 
         if (this->stateFlags1 & PLAYER_STATE1_27) {
@@ -11425,7 +11430,8 @@ void func_8084B1D8(Player* this, PlayState* play) {
          ((this->unk_6AD == 1) && CHECK_BTN_ANY(sControlInput->press.button, buttonsToCheck)))) {
         func_8083C148(this, play);
         func_80078884(NA_SE_SY_CAMERA_ZOOM_UP);
-    } else if ((DECR(this->unk_850) == 0) || (this->unk_6AD != 2)) {
+        // ready animation stopped here
+    } else if ((this->unk_850 = 0) == 0 || (this->unk_6AD != 2)) {
         if (func_8008F128(this)) {
             this->unk_6AE |= 0x43;
         } else {
@@ -12791,6 +12797,7 @@ void func_8084E3C4(Player* this, PlayState* play) {
     }
 }
 
+// spawn weapon model?
 void func_8084E604(Player* this, PlayState* play) {
     if (LinkAnimation_Update(play, &this->skelAnime)) {
         func_8083A098(this, &gPlayerAnim_link_normal_light_bom_end, play);
