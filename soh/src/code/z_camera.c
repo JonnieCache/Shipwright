@@ -1502,22 +1502,22 @@ Vec3f* BezierVec3f(Vec3f* target, f32 t, BezierPoints points) {
 
 f32 BezierClosestPoint(BezierPoints points, Vec3f* target) {
     f32 precision = 0.3;
-    f32 bestLength;
+    f32 bestPosition;
     f32 bestDistance = 9999999999;
     Vec3f scan;
-    f32 scanLength;
+    f32 scanPosition;
     f32 scanDistance;
     Vec3f before;
     Vec3f after;
-    f32 beforeLength;
-    f32 afterLength;
+    f32 beforePosition;
+    f32 afterPosition;
     f32 beforeDistance;
     f32 afterDistance;
 
   // linear scan for coarse approximation
-  for (scanLength = 0; scanLength <= 1; scanLength += precision) {
-    if ((scanDistance = OLib_Vec3fDist(BezierVec3f(&scan, scanLength, points), target)) < bestDistance) {
-      bestLength = scanLength;
+  for (scanPosition = 0; scanPosition <= 1; scanPosition += precision) {
+    if ((scanDistance = OLib_Vec3fDist(BezierVec3f(&scan, scanPosition, points), target)) < bestDistance) {
+      bestPosition = scanPosition;
       bestDistance = scanDistance;
     }
   }
@@ -1525,18 +1525,18 @@ f32 BezierClosestPoint(BezierPoints points, Vec3f* target) {
   // binary search for precise estimate
   precision /= 2;
   while (precision > 0.000625) {
-    if((beforeLength = bestLength - precision) >= 0 && (beforeDistance = OLib_Vec3fDist(BezierVec3f(&before, beforeLength, points), target)) < bestDistance) {
-      bestLength = beforeLength;
+    if((beforePosition = bestPosition - precision) >= 0 && (beforeDistance = OLib_Vec3fDist(BezierVec3f(&before, beforePosition, points), target)) < bestDistance) {
+      bestPosition = beforePosition;
       bestDistance = beforeDistance;
-    } else if ((afterLength = bestLength + precision) <= 1 && (afterDistance = OLib_Vec3fDist(BezierVec3f(&after, afterLength, points), target)) < bestDistance) {
-      bestLength = afterLength;
+    } else if ((afterPosition = bestPosition + precision) <= 1 && (afterDistance = OLib_Vec3fDist(BezierVec3f(&after, afterPosition, points), target)) < bestDistance) {
+      bestPosition = afterPosition;
       bestDistance = afterDistance;
     } else {
       precision /= 2;
     }
   }
 
-  return bestLength;
+  return bestPosition;
 }
 
 
@@ -1548,7 +1548,7 @@ s32 Camera_Free(Camera* camera) {
     Vec3f bottomControlPoint;
     Vec3f topControlPoint;
     Vec3f topPosition;
-    VecSph freeCamPosition;
+    VecSph atEyeGeo;
     Parallel1* para1 = (Parallel1*)camera->paramData;
     f32 playerHeight;
 
@@ -1563,8 +1563,6 @@ s32 Camera_Free(Camera* camera) {
     playerHeight = Player_GetHeight(camera->player);
 
     if (RELOAD_PARAMS) {
-        OLib_Vec3fDiffToVecSphGeo(&freeCamPosition, &camera->at, &camera->eye);
-
         CameraModeValue* values = sCameraSettings[camera->setting].cameraModes[camera->mode].values;
         f32 yNormal = (1.0f + PCT(OREG(46))) - (PCT(OREG(46)) * (68.0f / playerHeight));
 
@@ -1589,24 +1587,25 @@ s32 Camera_Free(Camera* camera) {
 
     camera->animState = 0;
 
-    f32 newRightStickX = -D_8015BD7C->state.input[0].cur.right_stick_x * 10.0f * (CVar_GetFloat("gThirdPersonCameraSensitivity", 1.0f));
-    f32 newRightStickY = D_8015BD7C->state.input[0].cur.right_stick_y * 0.0003 * (CVar_GetFloat("gThirdPersonCameraSensitivity", 1.0f));
+    f32 newCamX = -D_8015BD7C->state.input[0].cur.right_stick_x * 15.0f * (CVar_GetFloat("gThirdPersonCameraSensitivity", 1.0f));
+    f32 newCamY = D_8015BD7C->state.input[0].cur.right_stick_y * 0.0003 * (CVar_GetFloat("gThirdPersonCameraSensitivity", 1.0f));
+    f32 speedScaler = CVar_GetS32("gFreeCameraTransitionSpeed", 25);
 
-    camera->play->camX += newRightStickX * (CVar_GetS32("gInvertXAxis", 0) ? -1 : 1);
-    camera->play->camY += newRightStickY * (CVar_GetS32("gInvertYAxis", 1) ? 1 : -1);
+    newCamX *= (CVar_GetS32("gInvertXAxis", 0) ? -1 : 1);
+    camera->play->camY += newCamY * (CVar_GetS32("gInvertYAxis", 1) ? 1 : -1);
     camera->play->camY = CLAMP(camera->play->camY, 0, 1.0f);
 
-
-    BezierPoints points = FreecamCurvePoints(at, eye, camera->play->camX, camera->player->actor.world.pos.y, para1->distTarget);
+    OLib_Vec3fDiffToVecSphGeo(&atEyeGeo, &camera->at, &camera->eye);
+    BezierPoints points = FreecamCurvePoints(at, eye, atEyeGeo.yaw + newCamX, camera->player->actor.world.pos.y, para1->distTarget);
 
     Vec3f targetPos;
     BezierVec3f(&targetPos, camera->play->camY, points);
     
     f32 yDiff = ABS(targetPos.y - eye->y);
     f32 xzDiff = ABS(OLib_Vec3fDistXZ(&targetPos, eye));
-    f32 speedScaler = CVar_GetS32("gFreeCameraTransitionSpeed", 25);
 
     Camera_LERPCeilVec3f(&targetPos, eye, speedScaler / (yDiff + speedScaler), speedScaler / (xzDiff + speedScaler), 0.0f);
+    
 
     if (camera->status == CAM_STAT_ACTIVE) {
         CamColChk colChk;
@@ -2936,6 +2935,11 @@ s32 Camera_Jump0(Camera* camera) {
 }
 
 s32 Camera_Battle1(Camera* camera) {
+    if (CVar_GetS32("gFreeCamera", 0) && SetCameraManual(camera) == 1) {
+        Camera_Free(camera);
+        return 1;
+    }
+
     Vec3f* eye = &camera->eye;
     Vec3f* at = &camera->at;
     Vec3f* eyeNext = &camera->eyeNext;
@@ -4392,15 +4396,20 @@ s32 Camera_Subj2(Camera* camera) {
  * First person view
  */
 s32 Camera_Subj3(Camera* camera) {
+    // if (CVar_GetS32("gFreeCamera", 0) && SetCameraManual(camera) == 1) {
+    //     Camera_Free(camera);
+    //     return 1;
+    // }
+    
     Vec3f* eye = &camera->eye;
     Vec3f* at = &camera->at;
     Vec3f* eyeNext = &camera->eyeNext;
     Vec3f sp98;
     Vec3f sp8C;
     VecSph sp84;
-    VecSph sp7C;
+    VecSph atEyeGeo;
     VecSph tsph;
-    PosRot sp60;
+    PosRot playerFocus;
     PosRot* playerPosRot = &camera->playerPosRot;
     f32 sp58;
     f32 temp_f0_3;
@@ -4412,8 +4421,17 @@ s32 Camera_Subj3(Camera* camera) {
     Vec3f* pad2;
     f32 playerHeight;
 
-    Actor_GetFocus(&sp60, &camera->player->actor);
+    OLib_Vec3fDiffToVecSphGeo(&atEyeGeo, at, eye);
+
+    if (camera->animState == 0 || camera->animState == 0xA || camera->animState == 0x14) {
+        camera->player->actor.focus.rot.x = atEyeGeo.pitch;
+        camera->player->actor.focus.rot.y = BINANG_ROT180(atEyeGeo.yaw);
+        camera->player->actor.shape.rot.y = BINANG_ROT180(atEyeGeo.yaw);
+    }
+
+    Actor_GetFocus(&playerFocus, &camera->player->actor);
     playerHeight = Player_GetHeight(camera->player);
+
 
     if (camera->play->view.unk_124 == 0) {
         camera->play->view.unk_124 = camera->thisIdx | 0x50;
@@ -4433,19 +4451,18 @@ s32 Camera_Subj3(Camera* camera) {
     subj3->fovTarget = NEXTSETTING;
     subj3->interfaceFlags = NEXTSETTING;
     sp84.r = subj3->eyeNextDist;
-    sp84.yaw = BINANG_ROT180(sp60.rot.y);
-    sp84.pitch = sp60.rot.x;
-    sp98 = sp60.pos;
+    sp84.yaw = BINANG_ROT180(playerFocus.rot.y);
+    sp84.pitch = playerFocus.rot.x;
+    sp98 = playerFocus.pos;
     sp98.y += subj3->eyeNextYOffset;
 
     Camera_Vec3fVecSphGeoAdd(&sp8C, &sp98, &sp84);
-    OLib_Vec3fDiffToVecSphGeo(&sp7C, at, eye);
 
     sCameraInterfaceFlags = subj3->interfaceFlags;
     if (camera->animState == 0 || camera->animState == 0xA || camera->animState == 0x14) {
-        anim->r = sp7C.r;
-        anim->yaw = sp7C.yaw;
-        anim->pitch = sp7C.pitch;
+        anim->r = atEyeGeo.r;
+        anim->yaw = atEyeGeo.yaw;
+        anim->pitch = atEyeGeo.pitch;
         anim->animTimer = OREG(23);
         camera->dist = subj3->eyeNextDist;
         camera->animState++;
@@ -4468,10 +4485,10 @@ s32 Camera_Subj3(Camera* camera) {
         sp52 = BINANG_SUB(tsph.yaw, sp84.yaw) * temp_f0_3;
         sp50 = BINANG_SUB(tsph.pitch, sp84.pitch) * temp_f0_3;
 
-        sp7C.r = Camera_LERPCeilF(sp84.r + (sp58 * anim->animTimer), sp7C.r, PCT(OREG(28)), 1.0f);
-        sp7C.yaw = Camera_LERPCeilS(sp84.yaw + (sp52 * anim->animTimer), sp7C.yaw, PCT(OREG(28)), 0xA);
-        sp7C.pitch = Camera_LERPCeilS(sp84.pitch + (sp50 * anim->animTimer), sp7C.pitch, PCT(OREG(28)), 0xA);
-        Camera_Vec3fVecSphGeoAdd(eyeNext, at, &sp7C);
+        atEyeGeo.r = Camera_LERPCeilF(sp84.r + (sp58 * anim->animTimer), atEyeGeo.r, PCT(OREG(28)), 1.0f);
+        atEyeGeo.yaw = Camera_LERPCeilS(sp84.yaw + (sp52 * anim->animTimer), atEyeGeo.yaw, PCT(OREG(28)), 0xA);
+        atEyeGeo.pitch = Camera_LERPCeilS(sp84.pitch + (sp50 * anim->animTimer), atEyeGeo.pitch, PCT(OREG(28)), 0xA);
+        Camera_Vec3fVecSphGeoAdd(eyeNext, at, &atEyeGeo);
 
         *eye = *eyeNext;
         anim->animTimer--;
@@ -4482,25 +4499,25 @@ s32 Camera_Subj3(Camera* camera) {
             func_80044340(camera, at, eye);
         }
     } else {
-        sp58 = Math_SinS(-sp60.rot.x);
-        temp_f0_3 = Math_CosS(-sp60.rot.x);
+        sp58 = Math_SinS(-playerFocus.rot.x);
+        temp_f0_3 = Math_CosS(-playerFocus.rot.x);
         sp98.x = subj3->atOffset.x;
         sp98.y = (subj3->atOffset.y * temp_f0_3) - (subj3->atOffset.z * sp58);
         sp98.z = (subj3->atOffset.y * sp58) + (subj3->atOffset.z * temp_f0_3);
-        sp58 = Math_SinS(BINANG_ROT180(sp60.rot.y));
-        temp_f0_3 = Math_CosS(BINANG_ROT180(sp60.rot.y));
+        sp58 = Math_SinS(BINANG_ROT180(playerFocus.rot.y));
+        temp_f0_3 = Math_CosS(BINANG_ROT180(playerFocus.rot.y));
         subj3->atOffset.x = (sp98.z * sp58) + (sp98.x * temp_f0_3);
         subj3->atOffset.y = sp98.y;
         subj3->atOffset.z = (sp98.z * temp_f0_3) - (sp98.x * sp58);
-        at->x = subj3->atOffset.x + sp60.pos.x;
-        at->y = subj3->atOffset.y + sp60.pos.y;
-        at->z = subj3->atOffset.z + sp60.pos.z;
-        sp7C.r = subj3->eyeNextDist;
-        sp7C.yaw = BINANG_ROT180(sp60.rot.y);
-        sp7C.pitch = sp60.rot.x;
-        Camera_Vec3fVecSphGeoAdd(eyeNext, at, &sp7C);
-        sp7C.r = subj3->eyeDist;
-        Camera_Vec3fVecSphGeoAdd(eye, at, &sp7C);
+        at->x = subj3->atOffset.x + playerFocus.pos.x;
+        at->y = subj3->atOffset.y + playerFocus.pos.y;
+        at->z = subj3->atOffset.z + playerFocus.pos.z;
+        atEyeGeo.r = subj3->eyeNextDist;
+        atEyeGeo.yaw = BINANG_ROT180(playerFocus.rot.y);
+        atEyeGeo.pitch = playerFocus.rot.x;
+        Camera_Vec3fVecSphGeoAdd(eyeNext, at, &atEyeGeo);
+        atEyeGeo.r = subj3->eyeDist;
+        Camera_Vec3fVecSphGeoAdd(eye, at, &atEyeGeo);
     }
 
     camera->posOffset.x = camera->at.x - playerPosRot->pos.x;
