@@ -1595,7 +1595,7 @@ s32 Camera_Free(Camera* camera) {
     camera->play->camY += newCamY * (CVar_GetS32("gInvertYAxis", 1) ? 1 : -1);
     camera->play->camY = CLAMP(camera->play->camY, 0, 1.0f);
 
-    OLib_Vec3fDiffToVecSphGeo(&atEyeGeo, &camera->at, &camera->eye);
+    OLib_Vec3fDiffToVecSphGeo(&atEyeGeo, &camera->at, &camera->eyeNext);
     BezierPoints points = FreecamCurvePoints(at, eye, atEyeGeo.yaw + newCamX, camera->player->actor.world.pos.y, para1->distTarget);
 
     Vec3f targetPos;
@@ -4418,7 +4418,7 @@ s32 Camera_Subj3(Camera* camera) {
 
     OLib_Vec3fDiffToVecSphGeo(&atEyeGeo, at, eye);
 
-    if (camera->animState == 0 || camera->animState == 0xA || camera->animState == 0x14) {
+    if (camera->play->manualCamera && camera->animState == 0) {
         camera->player->actor.focus.rot.x = atEyeGeo.pitch;
         camera->player->actor.focus.rot.y = BINANG_ROT180(atEyeGeo.yaw);
         camera->player->actor.shape.rot.y = BINANG_ROT180(atEyeGeo.yaw);
