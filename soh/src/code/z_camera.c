@@ -4396,11 +4396,6 @@ s32 Camera_Subj2(Camera* camera) {
  * First person view
  */
 s32 Camera_Subj3(Camera* camera) {
-    // if (CVar_GetS32("gFreeCamera", 0) && SetCameraManual(camera) == 1) {
-    //     Camera_Free(camera);
-    //     return 1;
-    // }
-    
     Vec3f* eye = &camera->eye;
     Vec3f* at = &camera->at;
     Vec3f* eyeNext = &camera->eyeNext;
