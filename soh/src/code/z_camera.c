@@ -1418,30 +1418,37 @@ s32 Camera_Noop(Camera* camera) {
     return true;
 }
 
-BezierPoints FreecamCurvePoints(Vec3f* at, Vec3f* eye, f32 yaw, f32 playerY, f32 distTarget) {
-    VecSph cameraCursor;
-    Vec3f eyeCopy = *eye;
+void TranslateXZAlongAngle(Vec3f* pos, f32 angle, f32 distance) {
+    pos->x += Math_AccurateSinS(angle) * distance;
+    pos->z += Math_AccurateCosS(angle) * distance;
+}
+
+BezierPoints FreecamCurvePoints(f32 playerHeight) {
     BezierPoints points;
 
-    eyeCopy.y = at->y;
-    OLib_Vec3fDiffToVecSphGeo(&cameraCursor, at, &eyeCopy);
-    cameraCursor.yaw = yaw;
+    // TranslateXZAlongAngle(&points.p0, yaw, CVar_GetS32("gFreeCamBottomDist", 30));
+    // points.p0.y += (playerHeight * CVar_GetFloat("gFreeCamBottomHeightFactor", 0.3));
 
-    cameraCursor.r = 30;
-    Camera_Vec3fVecSphGeoAdd(&points.p0, at, &cameraCursor);
-    points.p0.y = playerY;
+    // TranslateXZAlongAngle(&points.p1, yaw, CVar_GetS32("gFreeCamBottomCtrlDist", 100));
+    // points.p1.y += (playerHeight * CVar_GetFloat("gFreeCamBottomHeightFactor", 0.3));
 
-    cameraCursor.r = CVar_GetS32("gFreeCamBottomCtrlDist", distTarget);
-    Camera_Vec3fVecSphGeoAdd(&points.p1, at, &cameraCursor);
-    points.p1.y = playerY;
+    // TranslateXZAlongAngle(&points.p2, yaw, CVar_GetS32("gFreeCamTopCtrlDist", 100));
+    // points.p2.y += CVar_GetS32("gFreeCamTopHeight", 100);
 
-    cameraCursor.r = CVar_GetS32("gFreeCamTopCtrlDist", distTarget);
-    Camera_Vec3fVecSphGeoAdd(&points.p2, at, &cameraCursor);
-    points.p2.y = playerY + CVar_GetS32("gFreeCamTopHeight", distTarget);
+    // TranslateXZAlongAngle(&points.p3, yaw, CVar_GetS32("gFreeCamTopDist", 100));
+    // points.p3.y += CVar_GetS32("gFreeCamTopHeight", 100);
 
-    cameraCursor.r = CVar_GetS32("gFreeCamTopDist", distTarget);
-    Camera_Vec3fVecSphGeoAdd(&points.p3, at, &cameraCursor);
-    points.p3.y = playerY + CVar_GetS32("gFreeCamTopHeight", distTarget);
+    points.p0.x += CVar_GetS32("gFreeCamBottomDist", 30);
+    points.p0.y += (playerHeight * CVar_GetFloat("gFreeCamBottomHeightFactor", 0.3));
+
+    points.p1.x += CVar_GetS32("gFreeCamBottomCtrlDist", 100);
+    points.p1.y += (playerHeight * CVar_GetFloat("gFreeCamBottomHeightFactor", 0.3));
+
+    points.p2.x += CVar_GetS32("gFreeCamTopCtrlDist", 100);
+    points.p2.y += CVar_GetS32("gFreeCamTopHeight", 100);
+
+    points.p3.x += CVar_GetS32("gFreeCamTopDist", 100);
+    points.p3.y += CVar_GetS32("gFreeCamTopHeight", 100);
 
     return points;
 }
@@ -1449,7 +1456,6 @@ BezierPoints FreecamCurvePoints(Vec3f* at, Vec3f* eye, f32 yaw, f32 playerY, f32
 s32 SetCameraManual(Camera* camera) {
     f32 newCamX = -D_8015BD7C->state.input[0].cur.right_stick_x * 10.0f;
     f32 newCamY = D_8015BD7C->state.input[0].cur.right_stick_y * 10.0f;
-    Parallel1* para1 = (Parallel1*)camera->paramData;
 
     if ((fabsf(newCamX) >= 15.0f || fabsf(newCamY) >= 15.0f) && camera->play->manualCamera == false) {
         camera->play->manualCamera = true;
@@ -1457,10 +1463,14 @@ s32 SetCameraManual(Camera* camera) {
         VecSph eyeAdjustment;
         OLib_Vec3fDiffToVecSphGeo(&eyeAdjustment, &camera->at, &camera->eye);
 
-        BezierPoints points = FreecamCurvePoints(&camera->at, &camera->eye, eyeAdjustment.yaw, camera->player->actor.world.pos.y, para1->distTarget);
+        f32 headY = Player_GetHeight(camera->player) / (camera->player->rideActor != NULL ? 2 : 1.2f);
 
-        camera->play->camX = eyeAdjustment.yaw;
-        camera->play->camY = BezierClosestPoint(points, &camera->eye);
+
+        BezierPoints points = FreecamCurvePoints(headY);
+
+        // camera->play->camX = eyeAdjustment.yaw;
+        // f32 targetY = &camera->eye.y - &headY;
+        // camera->play->camY = BezierClosestPoint(points, &targetY);
     }
 
     if (camera->play->manualCamera) {
@@ -1492,23 +1502,30 @@ f32 Bezier(f32 t, f32 p0, f32 p1, f32 p2, f32 p3) {
     return BezierP0(t, p0) + BezierP1(t, p1) + BezierP2(t, p2) + BezierP3(t, p3);
 }
 
-Vec3f* BezierVec3f(Vec3f* target, f32 t, BezierPoints points) {
+// Vec3f* BezierVec3f(Vec3f* target, f32 t, BezierPoints points) {
+//     target->x = Bezier(t, points.p0.x, points.p1.x, points.p2.x, points.p3.x);
+//     target->y = Bezier(t, points.p0.y, points.p1.y, points.p2.y, points.p3.y);
+//     target->z = Bezier(t, points.p0.z, points.p1.z, points.p2.z, points.p3.z);
+
+//     return target;
+// }
+
+Vec2f* BezierVec2f(Vec2f* target, f32 t, BezierPoints points) {
     target->x = Bezier(t, points.p0.x, points.p1.x, points.p2.x, points.p3.x);
     target->y = Bezier(t, points.p0.y, points.p1.y, points.p2.y, points.p3.y);
-    target->z = Bezier(t, points.p0.z, points.p1.z, points.p2.z, points.p3.z);
 
     return target;
 }
 
-f32 BezierClosestPoint(BezierPoints points, Vec3f* target) {
+f32 BezierClosestPoint(BezierPoints points, f32* target) {
     f32 precision = 0.3;
     f32 bestPosition;
     f32 bestDistance = 9999999999;
-    Vec3f scan;
+    f32 scan;
     f32 scanPosition;
     f32 scanDistance;
-    Vec3f before;
-    Vec3f after;
+    f32 before;
+    f32 after;
     f32 beforePosition;
     f32 afterPosition;
     f32 beforeDistance;
@@ -1516,7 +1533,8 @@ f32 BezierClosestPoint(BezierPoints points, Vec3f* target) {
 
   // linear scan for coarse approximation
   for (scanPosition = 0; scanPosition <= 1; scanPosition += precision) {
-    if ((scanDistance = OLib_Vec3fDist(BezierVec3f(&scan, scanPosition, points), target)) < bestDistance) {
+    // if ((scanDistance = OLib_Vec3fDist(BezierVec3f(&scan, scanPosition, points), target)) < bestDistance) {
+    if ((scanDistance = ABS((scan = Bezier(scanPosition, points.p0.y, points.p1.y, points.p2.y, points.p3.y)) - *target)) < bestDistance) {
       bestPosition = scanPosition;
       bestDistance = scanDistance;
     }
@@ -1525,10 +1543,10 @@ f32 BezierClosestPoint(BezierPoints points, Vec3f* target) {
   // binary search for precise estimate
   precision /= 2;
   while (precision > 0.000625) {
-    if((beforePosition = bestPosition - precision) >= 0 && (beforeDistance = OLib_Vec3fDist(BezierVec3f(&before, beforePosition, points), target)) < bestDistance) {
+    if((beforePosition = bestPosition - precision) >= 0 && ((beforeDistance = ABS((before = Bezier(beforePosition, points.p0.y, points.p1.y, points.p2.y, points.p3.y)) - *target))) < bestDistance) {
       bestPosition = beforePosition;
       bestDistance = beforeDistance;
-    } else if ((afterPosition = bestPosition + precision) <= 1 && (afterDistance = OLib_Vec3fDist(BezierVec3f(&after, afterPosition, points), target)) < bestDistance) {
+    } else if ((afterPosition = bestPosition + precision) <= 1 && (afterDistance = ABS((after = Bezier(afterPosition, points.p0.y, points.p1.y, points.p2.y, points.p3.y)) - *target)) < bestDistance) {
       bestPosition = afterPosition;
       bestDistance = afterDistance;
     } else {
@@ -1551,16 +1569,62 @@ s32 Camera_Free(Camera* camera) {
     VecSph atEyeGeo;
     Parallel1* para1 = (Parallel1*)camera->paramData;
     f32 playerHeight;
-
-    at->x = Camera_LERPCeilF(camera->player->actor.world.pos.x, camera->at.x, 0.5f, 1.0f);
-    at->y = Camera_LERPCeilF(camera->player->actor.world.pos.y + (camera->player->rideActor != NULL
-                                                                      ? Player_GetHeight(camera->player) / 2
-                                                                      : Player_GetHeight(camera->player)) /
-                                                                     1.2f,
-                             camera->at.y, 0.5f, 1.0f);
-    at->z = Camera_LERPCeilF(camera->player->actor.world.pos.z, camera->at.z, 0.5f, 1.0f);
-
     playerHeight = Player_GetHeight(camera->player);
+
+    f32 newCamX = -D_8015BD7C->state.input[0].cur.right_stick_x * 15.0f * (CVar_GetFloat("gThirdPersonCameraSensitivity", 1.0f));
+    f32 newCamY = D_8015BD7C->state.input[0].cur.right_stick_y * 0.0003 * (CVar_GetFloat("gThirdPersonCameraSensitivity", 1.0f));
+    f32 speedScaler = CVar_GetS32("gFreeCameraTransitionSpeed", 25);
+    f32 atScaler = CVar_GetFloat("gFreeCameraAtSpeed", 0.5f);
+    f32 leadScaler = CVar_GetFloat("gFreeCameraLeadSpeed", 0.5f);
+    f32 leadDistance = CVar_GetS32("gFreeCameraLeadDistance", 20);
+
+
+    newCamX *= (CVar_GetS32("gInvertXAxis", 0) ? -1 : 1);
+    camera->play->camY += newCamY * (CVar_GetS32("gInvertYAxis", 1) ? 1 : -1);
+    camera->play->camY = CLAMP(camera->play->camY, 0, 1.0f);
+
+    f32 headY = playerHeight / (camera->player->rideActor != NULL ? 2 : 1.2f);
+    f32 eyeHeight = CLAMP_MIN((eye->y - headY - camera->player->actor.world.pos.y), 0);
+    
+
+    // if(camera->player->actor.speedXZ >= 3.0f) {
+        // atScaler = 0.1f;
+        at->x = Camera_LERPCeilF(camera->player->actor.world.pos.x,
+                                camera->at.x, atScaler, 1.0f);
+
+        at->y = Camera_LERPCeilF(camera->player->actor.world.pos.y + headY + (eyeHeight * 0.8 * CVar_GetFloat("gFreeCamFocusHeightFactor", 0.5)),
+                                camera->at.y, atScaler, 1.0f);
+
+        at->z = Camera_LERPCeilF(camera->player->actor.world.pos.z,
+                                camera->at.z, atScaler, 1.0f);
+    // }
+
+
+
+    // if(camera->player->actor.speedXZ >= 3.0f) {
+    //     at->x = Camera_LERPCeilF(at->x + Math_AccurateSinS(camera->playerPosRot.rot.y) * camera->player->actor.speedXZ * leadDistance,
+    //                             at->x, leadScaler, 1.0f);
+
+    //     at->z = Camera_LERPCeilF(at->z + Math_AccurateCosS(camera->playerPosRot.rot.y) * camera->player->actor.speedXZ * leadDistance,
+    //                             at->z, leadScaler, 1.0f);
+    // }
+
+    // if(camera->player->actor.speedXZ < 0.001f) {
+    // camera->animState = 0;
+
+    // }
+        // if(camera->player->actor.speedXZ > 0.001f) {
+    //     // at->x = Camera_LERPCeilF(at->x + Math_AccurateSinS(camera->playerPosRot.rot.y) * camera->player->actor.speedXZ * leadDistance,
+    //     //                         at->x, leadScaler, 1.0f);
+
+    //     // at->z = Camera_LERPCeilF(at->z + Math_AccurateCosS(camera->playerPosRot.rot.y) * camera->player->actor.speedXZ * leadDistance,
+    //     //                         at->z, leadScaler, 1.0f);
+    //     // TranslateXZAlongAngle(at, camera->playerPosRot.rot.y, camera->player->actor.speedXZ * leadDistance)
+    //     Vec3f leadingAt = *at;
+    //     TranslateXZAlongAngle(&leadingAt, camera->playerPosRot.rot.y, camera->player->actor.speedXZ * leadDistance);
+    //     Camera_LERPCeilVec3f(&leadingAt, at, 1.0f, leadScaler, 1.0f);
+
+    // }
 
     if (RELOAD_PARAMS) {
         CameraModeValue* values = sCameraSettings[camera->setting].cameraModes[camera->mode].values;
@@ -1587,22 +1651,21 @@ s32 Camera_Free(Camera* camera) {
 
     camera->animState = 0;
 
-    f32 newCamX = -D_8015BD7C->state.input[0].cur.right_stick_x * 15.0f * (CVar_GetFloat("gThirdPersonCameraSensitivity", 1.0f));
-    f32 newCamY = D_8015BD7C->state.input[0].cur.right_stick_y * 0.0003 * (CVar_GetFloat("gThirdPersonCameraSensitivity", 1.0f));
-    f32 speedScaler = CVar_GetS32("gFreeCameraTransitionSpeed", 25);
 
-    newCamX *= (CVar_GetS32("gInvertXAxis", 0) ? -1 : 1);
-    camera->play->camY += newCamY * (CVar_GetS32("gInvertYAxis", 1) ? 1 : -1);
-    camera->play->camY = CLAMP(camera->play->camY, 0, 1.0f);
+    OLib_Vec3fDiffToVecSphGeo(&atEyeGeo, &camera->playerPosRot.pos, &camera->eyeNext);
+    // BezierPoints points = FreecamCurvePoints(at, eyeNext, atEyeGeo.yaw + newCamX, playerHeight,camera->player->actor.world.pos.y);
+    BezierPoints points = FreecamCurvePoints(headY);//, atEyeGeo.yaw + newCamX);
 
-    OLib_Vec3fDiffToVecSphGeo(&atEyeGeo, &camera->at, &camera->eyeNext);
-    BezierPoints points = FreecamCurvePoints(at, eye, atEyeGeo.yaw + newCamX, camera->player->actor.world.pos.y, para1->distTarget);
-
-    Vec3f targetPos;
-    BezierVec3f(&targetPos, camera->play->camY, points);
+    Vec2f curveOffset;
+    BezierVec2f(&curveOffset, camera->play->camY, points);
+    Vec3f targetPos = camera->playerPosRot.pos;
+    targetPos.y += curveOffset.y;
+    TranslateXZAlongAngle(&targetPos, atEyeGeo.yaw + newCamX, curveOffset.x);
     
     f32 yDiff = ABS(targetPos.y - eye->y);
     f32 xzDiff = ABS(OLib_Vec3fDistXZ(&targetPos, eye));
+
+    // if (camera->player->actor.speedXZ > 0.001f) {
 
     Camera_LERPCeilVec3f(&targetPos, eye, speedScaler / (yDiff + speedScaler), speedScaler / (xzDiff + speedScaler), 0.0f);
     
@@ -1614,6 +1677,7 @@ s32 Camera_Free(Camera* camera) {
         *eye = colChk.pos;
         *eyeNext = colChk.pos;
     }
+    // }
 
     camera->fov = Camera_LERPCeilF(65.0f, camera->fov, camera->fovUpdateRate, 1.0f);
     camera->roll = Camera_LERPCeilS(0, camera->roll, 0.5, 0xA);

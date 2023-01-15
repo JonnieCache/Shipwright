@@ -271,10 +271,24 @@ namespace GameControlEditor {
                                         "gFreeCamTopDist", 10, 500, "", 185, true);
         UIWidgets::EnhancementSliderInt("Camera Top Control Point Distance: %d", "##CamTopCtrlDist",
                                             "gFreeCamTopCtrlDist", 0, 500, "", 185, true);
+        UIWidgets::EnhancementSliderInt("Camera Bottom Distance: %d", "##CamBottomDist",
+                                            "gFreeCamBottomDist", 0, 500, "", 30, true);
         UIWidgets::EnhancementSliderInt("Camera Bottom Control Point Distance: %d", "##CamBottomCtrlDist",
                                             "gFreeCamBottomCtrlDist", 0, 500, "", 185, true);
+        UIWidgets::EnhancementSliderFloat("Camera Bottom Height Factor: %d", "##CamBottomHeightFactor",
+                                            "gFreeCamBottomHeightFactor", 0, 1, "", 0.3, true);
         UIWidgets::EnhancementSliderInt("Camera Transition Speed: %d", "##CamTranSpeed",
                                         "gFreeCameraTransitionSpeed", 0, 900, "", 25, true);
+        UIWidgets::EnhancementSliderFloat("Camera At Speed: %d", "##CamAtSpeed",
+                                        "gFreeCameraAtSpeed", 0, 1, "", 0.5, true);
+        UIWidgets::EnhancementSliderFloat("Camera Lead Speed: %d", "##CamLeadSpeed",
+                                        "gFreeCameraLeadSpeed", 0, 1, "", 0.5, true);
+        UIWidgets::EnhancementSliderInt("Camera Lead Distance: %d", "##CamLeadDistance",
+                                        "gFreeCameraLeadDistance", 0, 200, "", 20, true);
+        UIWidgets::EnhancementSliderInt("Camera Focus Height: %d", "##CamFocusHeight",
+            "gFreeCamFocusHeight", 0, 500, "", 0, true);
+        UIWidgets::EnhancementSliderFloat("Camera Focus Height Factor: %d", "##CamFocusHeightFactor",
+                                            "gFreeCamFocusHeightFactor", 0, 1, "", 0.3, true);
         SohImGui::EndGroupPanel();
     }
 

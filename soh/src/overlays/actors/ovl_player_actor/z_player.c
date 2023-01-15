@@ -11432,6 +11432,7 @@ void func_8084B1D8(Player* this, PlayState* play) {
         func_80078884(NA_SE_SY_CAMERA_ZOOM_UP);
         // ready animation stopped here
     } else if ((this->unk_850 = 0) == 0 || (this->unk_6AD != 2)) {
+    // } else if (DECR(this->unk_850) == 0 || (this->unk_6AD != 2)) {
         if (func_8008F128(this)) {
             this->unk_6AE |= 0x43;
         } else {
