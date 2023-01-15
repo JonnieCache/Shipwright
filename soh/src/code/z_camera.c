@@ -1438,17 +1438,17 @@ BezierPoints FreecamCurvePoints(f32 playerHeight) {
     // TranslateXZAlongAngle(&points.p3, yaw, CVar_GetS32("gFreeCamTopDist", 100));
     // points.p3.y += CVar_GetS32("gFreeCamTopHeight", 100);
 
-    points.p0.x += CVar_GetS32("gFreeCamBottomDist", 30);
-    points.p0.y += (playerHeight * CVar_GetFloat("gFreeCamBottomHeightFactor", 0.3));
+    points.p0.x = CVar_GetS32("gFreeCamBottomDist", 30);
+    points.p0.y = (playerHeight * CVar_GetFloat("gFreeCamBottomHeightFactor", 0.3));
 
-    points.p1.x += CVar_GetS32("gFreeCamBottomCtrlDist", 100);
-    points.p1.y += (playerHeight * CVar_GetFloat("gFreeCamBottomHeightFactor", 0.3));
+    points.p1.x = CVar_GetS32("gFreeCamBottomCtrlDist", 100);
+    points.p1.y = (playerHeight * CVar_GetFloat("gFreeCamBottomHeightFactor", 0.3));
 
-    points.p2.x += CVar_GetS32("gFreeCamTopCtrlDist", 100);
-    points.p2.y += CVar_GetS32("gFreeCamTopHeight", 100);
+    points.p2.x = CVar_GetS32("gFreeCamTopCtrlDist", 100);
+    points.p2.y = CVar_GetS32("gFreeCamTopHeight", 100);
 
-    points.p3.x += CVar_GetS32("gFreeCamTopDist", 100);
-    points.p3.y += CVar_GetS32("gFreeCamTopHeight", 100);
+    points.p3.x = CVar_GetS32("gFreeCamTopDist", 100);
+    points.p3.y = CVar_GetS32("gFreeCamTopHeight", 100);
 
     return points;
 }
@@ -1468,9 +1468,9 @@ s32 SetCameraManual(Camera* camera) {
 
         BezierPoints points = FreecamCurvePoints(headY);
 
-        // camera->play->camX = eyeAdjustment.yaw;
-        // f32 targetY = &camera->eye.y - &headY;
-        // camera->play->camY = BezierClosestPoint(points, &targetY);
+        camera->play->camX = eyeAdjustment.yaw;
+        f32 targetY = camera->eye.y - camera->playerPosRot.pos.y;
+        camera->play->camY = BezierClosestPoint(points, &targetY);
     }
 
     if (camera->play->manualCamera) {
